@@ -12,13 +12,13 @@ info:
     Response bodies are `text/plain` with newline-separated `code=value`
     lines. The full contract is described per operation below.
 
-    See also: https://github.com/ds3783/FuseCore
+    See also: https://github.com/ds3783/FuseCoreExpress
   license:
     name: MIT
     identifier: MIT
   contact:
     name: FuseCore on GitHub
-    url: https://github.com/ds3783/FuseCore
+    url: https://github.com/ds3783/FuseCoreExpress
 
 servers:
   - url: "{baseUrl}"

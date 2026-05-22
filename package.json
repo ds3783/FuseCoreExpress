@@ -1,6 +1,6 @@
 {
   "name": "fuse-core-express",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "FuseCore Web Component",
   "scripts": {
     "test": "mocha --exit --require test/hooks/setup.mjs --timeout 15000",
@@ -31,14 +31,14 @@
   "module": "./dist/esm/index.mjs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ds3783/FuseCore.git"
+    "url": "git+https://github.com/ds3783/FuseCoreExpress.git"
   },
   "author": "Ds.3783",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ds3783/FuseCore/issues"
+    "url": "https://github.com/ds3783/FuseCoreExpress/issues"
   },
-  "homepage": "https://github.com/ds3783/FuseCore#readme",
+  "homepage": "https://github.com/ds3783/FuseCoreExpress#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
   },
