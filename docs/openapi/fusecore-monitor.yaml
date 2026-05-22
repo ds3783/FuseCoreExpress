@@ -1,0 +1,166 @@
+openapi: 3.1.0
+
+info:
+  title: FuseCore Monitor HTTP API
+  version: "1.0"
+  summary: Metric scraping endpoints exposed by the FuseCore monitor module.
+  description: |
+    FuseCore mounts these endpoints onto the host Express application when
+    `common.expressApp` is provided to `FuseCore.init()`. They are intended
+    for monitoring / SRE integrations that periodically scrape metrics.
+
+    Response bodies are `text/plain` with newline-separated `code=value`
+    lines. The full contract is described per operation below.
+
+    See also: https://github.com/ds3783/FuseCore
+  license:
+    name: MIT
+    identifier: MIT
+  contact:
+    name: FuseCore on GitHub
+    url: https://github.com/ds3783/FuseCore
+
+servers:
+  - url: "{baseUrl}"
+    description: |
+      The host that runs FuseCore. FuseCore is a library and does not own
+      a host or port — substitute the actual deployment target.
+    variables:
+      baseUrl:
+        default: http://localhost:3000
+        description: Base URL of your Express application running FuseCore.
+
+tags:
+  - name: monitor
+    description: Plaintext metric exports for periodic scraping.
+
+# These endpoints are unauthenticated; they are intended to be exposed only
+# inside a trusted scraping network (cluster-internal, behind a private LB),
+# never directly on the public internet. Authentication, if any, is the
+# integrator's responsibility (e.g. via nginx or a service mesh).
+security: []
+
+paths:
+
+  /Monitor.jsp:
+    get:
+      tags: [monitor]
+      operationId: getRootMonitor
+      summary: Export root-scoped metrics.
+      description: |
+        Returns the most recent metric snapshot for the root path (`/`).
+
+        FuseCore re-computes the exported snapshot every **60 seconds**.
+        Counters are exported as their raw count; value-distribution
+        metrics are exported as the average over the window
+        (`sum / cnt`). Both pools reset on each export cycle.
+
+        Body grammar (one line per metric):
+
+            <code>=<value>\n
+
+        - `code`: metric name (string, typically suffixed `_Count` for
+          counters and `_Value` for value-distribution metrics).
+        - `value`: a JavaScript number. Counters are integers; value
+          metrics are floating-point averages.
+
+        The response ends with a trailing newline. The order of lines is
+        not stable across snapshots.
+      responses:
+        "200":
+          description: Latest metric snapshot for the root path.
+          headers:
+            Cache-Control:
+              schema: { type: string }
+              description: Always `no-cache, no-store, must-revalidate`.
+            Pragma:
+              schema: { type: string }
+              description: Always `no-cache`.
+            Expires:
+              schema: { type: string }
+              description: Always `0`.
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Newline-separated `code=value` lines, trailing `\n`.
+              examples:
+                typical:
+                  summary: Typical primary-process snapshot
+                  value: |
+                    all_req_Count=1234
+                    all_req_Time=18.7
+                    404_req_Count=5
+                    5xx_req_Count=0
+                    mem_rss_usage_Value=128.31
+                    mem_heap_usage_Value=42.06
+                    mem_heap_size_Value=64
+                    cpu_usage_Value=0.083
+                empty:
+                  summary: First scrape, no metrics yet exported
+                  value: |
+        "404":
+          description: |
+            FuseCore is not mounted on this host (i.e. `common.expressApp`
+            was not set during `FuseCore.init`, or the host application is
+            not running). The body in this case is whatever the host
+            Express app's default 404 handler returns; FuseCore does not
+            produce it.
+
+  /{path}/Monitor.jsp:
+    get:
+      tags: [monitor]
+      operationId: getPathScopedMonitor
+      summary: Export metrics scoped to a path bucket.
+      description: |
+        Same response shape as `GET /Monitor.jsp`, but the returned
+        metric lines are restricted to those recorded under the given
+        path bucket. The bucket is whatever string callers passed to
+        `monitor.recordCnt(code, path, ...)` or
+        `monitor.recordVal(code, path, ...)`.
+
+        For example, a service that calls
+        `FuseCore.monitor.recordCnt('order_created_Count', '/orders')`
+        will see that counter under
+        `GET /orders/Monitor.jsp`, not the root endpoint.
+
+        Body grammar is identical to the root endpoint.
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+          description: |
+            The path bucket to scope metrics by. Free-form string set by
+            the application when it called `recordCnt` / `recordVal`.
+      responses:
+        "200":
+          description: Latest metric snapshot for the requested path bucket.
+          headers:
+            Cache-Control:
+              schema: { type: string }
+              description: Always `no-cache, no-store, must-revalidate`.
+            Pragma:
+              schema: { type: string }
+              description: Always `no-cache`.
+            Expires:
+              schema: { type: string }
+              description: Always `0`.
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Newline-separated `code=value` lines, trailing `\n`.
+              examples:
+                ordersBucket:
+                  summary: Snapshot of an /orders bucket
+                  value: |
+                    order_created_Count=42
+                    order_failed_Count=1
+                    order_amount_Value=159.42
+        "404":
+          description: |
+            FuseCore is not mounted on this host, or no metrics have ever
+            been recorded under the requested `path` bucket so the host
+            Express app's 404 handler runs instead.

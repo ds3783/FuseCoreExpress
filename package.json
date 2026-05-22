@@ -1,0 +1,70 @@
+{
+  "name": "fuse-core-express",
+  "version": "1.0.6",
+  "description": "FuseCore Web Component",
+  "scripts": {
+    "test": "mocha --exit --require test/hooks/setup.mjs --timeout 15000",
+    "build": "bash ./build/build.sh",
+    "build:obfuscated": "rm -rf dist-obfuscated && npm run build && javascript-obfuscator dist/ --output dist-obfuscated/ --config build/obfuscator.config.js --exclude '**/docs/**' && node ./build/copy-docs.mjs dist-obfuscated",
+    "build:secure": "npm run build && node ./build/secure-crypto-builder.mjs",
+    "version:secure": "node ./build/secure-version-keys.mjs",
+    "publish:secure": "npm run build:secure && cd dist-encrypted && npm publish",
+    "publish:secure:dry": "npm run build:secure && cd dist-encrypted && npm publish --dry-run",
+    "version:upgrade": "node ./build/version-upgrade.mjs",
+    "version:patch": "node ./build/version-upgrade.mjs --patch",
+    "version:minor": "node ./build/version-upgrade.mjs --minor",
+    "version:major": "node ./build/version-upgrade.mjs --major",
+    "version:show": "node ./build/version-upgrade.mjs --version",
+    "sync:git": "node ./build/sync-git.mjs"
+  },
+  "main": "dist/cjs/index.js",
+  "exports": {
+    ".": {
+      "node": {
+        "import": "./dist/esm/index.mjs",
+        "require": "./dist/cjs/index.js"
+      },
+      "default": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "module": "./dist/esm/index.mjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ds3783/FuseCore.git"
+  },
+  "author": "Ds.3783",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ds3783/FuseCore/issues"
+  },
+  "homepage": "https://github.com/ds3783/FuseCore#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "dependencies": {
+    "better-https-proxy-agent": "^1.0.8",
+    "cookie": "~0.7.0",
+    "dot-prop": "^9.0.0",
+    "form-data": "^4.0.0",
+    "node-cron": "^4.2.1",
+    "on-finished": "^2.3.0",
+    "redis": "^4.6.0",
+    "tracer": "^1.3.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.28.0",
+    "@babel/core": "^7.20.12",
+    "@babel/plugin-transform-async-to-generator": "^7.20.7",
+    "@babel/preset-env": "^7.20.2",
+    "husky": "^4.3.0",
+    "javascript-obfuscator": "^4.1.1",
+    "mocha": "^11.7.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run build",
+      "pre-push": "npm test"
+    }
+  }
+}
